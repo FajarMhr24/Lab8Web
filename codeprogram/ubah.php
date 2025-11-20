@@ -1,108 +1,94 @@
-<?php 
+<?php
+include("koneksi.php");
 
-error_reporting(E_ALL); 
-include_once 'koneksi.php'; 
+if (!isset($_GET['id'])) {
+    die("Error: ID tidak ditemukan!");
+}
 
-if (isset($_POST['submit'])) 
-{ 
-    $id = $_POST['id']; 
-    $nama = $_POST['nama']; 
-    $kategori = $_POST['kategori']; 
-    $harga_jual = $_POST['harga_jual']; 
-    $harga_beli = $_POST['harga_beli']; 
-    $stok = $_POST['stok']; 
-    $file_gambar = $_FILES['file_gambar']; 
-    $gambar = null; 
+$id = $_GET['id'];
 
-    if ($file_gambar['error'] == 0) 
-    { 
-        $filename = str_replace(' ', '_', $file_gambar['name']); 
-        $destination = dirname(__FILE__) . '/gambar/' . $filename; 
-        if (move_uploaded_file($file_gambar['tmp_name'], $destination)) 
-        { 
-            $gambar = 'gambar/' . $filename;; 
-        } 
-    } 
+$sql = "SELECT * FROM data_barang WHERE id_barang = $id";
+$result = mysqli_query($conn, $sql);
+$data = mysqli_fetch_assoc($result);
 
-    $sql = 'UPDATE data_barang SET '; 
-    $sql .= "nama = '{$nama}', kategori = '{$kategori}', "; 
-    $sql .= "harga_jual = '{$harga_jual}', harga_beli = '{$harga_beli}', stok = '{$stok}' "; 
+if (!$data) {
+    die("Error: Data tidak ditemukan dalam database.");
+}
 
-    if (!empty($gambar)) 
-        $sql .= ", gambar = '{$gambar}' "; 
+if (isset($_POST['submit'])) {
 
-    $sql .= "WHERE id_barang = '{$id}'"; 
+    $nama     = $_POST['nama'];
+    $kategori = $_POST['kategori'];
+    $harga_jual = $_POST['harga_jual'];
+    $harga_beli = $_POST['harga_beli'];
+    $stok       = $_POST['stok'];
+    $gambar     = $data['gambar']; 
 
-    $result = mysqli_query($conn, $sql); 
-    header('location: index.php'); 
-} 
+    if (!empty($_FILES['file_gambar']['name'])) {
+        $upload_dir = "gambar/";
+        $tmp_name = $_FILES['file_gambar']['tmp_name'];
+        $filename = $_FILES['file_gambar']['name'];
 
-$id = $_GET['id']; 
-$sql = "SELECT * FROM data_barang WHERE id_barang = '{$id}'"; 
-$result = mysqli_query($conn, $sql); 
-if (!$result) die('Error: Data tidak tersedia'); 
-$data = mysqli_fetch_array($result); 
+        move_uploaded_file($tmp_name, $upload_dir . $filename);
+        $gambar = $filename; 
+    }
 
-function is_select($var, $val) { 
-    if ($var == $val) return 'selected=\"selected\"'; 
-    return false; 
-} 
 
-?> 
+    $sql_update = "UPDATE data_barang SET 
+                    nama='$nama',
+                    kategori='$kategori',
+                    harga_jual='$harga_jual',
+                    harga_beli='$harga_beli',
+                    stok='$stok',
+                    gambar='$gambar'
+                   WHERE id_barang=$id";
 
-<!DOCTYPE html> 
-<html lang="en"> 
-<head> 
-    <meta charset="UTF-8"> 
-    <link href="style.css" rel="stylesheet" type="text/css" /> 
-    <title>Ubah Barang</title> 
-</head> 
+    mysqli_query($conn, $sql_update);
 
-<body> 
-<div class="container"> 
-    <h1>Ubah Barang</h1> 
-    <div class="main"> 
-        <form method="post" action="ubah.php" enctype="multipart/form-data"> 
-            <div class="input"> 
-                <label>Nama Barang</label> 
-                <input type="text" name="nama" value="<?php echo $data['nama'];?>" /> 
-            </div> 
 
-            <div class="input"> 
-                <label>Kategori</label> 
-                <select name="kategori"> 
-                    <option <?php echo is_select('Komputer', $data['kategori']);?> value="Komputer">Komputer</option> 
-                    <option <?php echo is_select('Komputer', $data['kategori']);?> value="Elektronik">Elektronik</option> 
-                    <option <?php echo is_select('Komputer', $data['kategori']);?> value="Hand Phone">Hand Phone</option> 
-                </select> 
-            </div> 
+    header("Location: index.php");
+}
+?>
 
-            <div class="input"> 
-                <label>Harga Jual</label> 
-                <input type="text" name="harga_jual" value="<?php echo $data['harga_jual'];?>" /> 
-            </div> 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Ubah Barang</title>
+</head>
+<body>
 
-            <div class="input"> 
-                <label>Harga Beli</label> 
-                <input type="text" name="harga_beli" value="<?php echo $data['harga_beli'];?>" /> 
-            </div> 
+<h1>Ubah Barang</h1>
 
-            <div class="input"> 
-                <label>Stok</label> 
-                <input type="text" name="stok" value="<?php echo $data['stok'];?>" /> 
-            </div> 
+<form action="" method="post" enctype="multipart/form-data">
 
-            <div class="input"> 
-                <label>File Gambar</label> 
-                <input type="file" name="file_gambar" /> 
-            </div> 
+    Nama Barang
+    <input type="text" name="nama" value="<?= $data['nama']; ?>"><br><br>
 
-            <div class="submit"> 
-                <input type="hidden" name="id" value="<?php echo $data['id_barang'];?>" /> 
-                <input type="submit" name="submit" value="Simpan" /> 
-            </div> 
-        </form> 
-    </div> 
-</div> 
-</body> 
+    Kategori
+    <select name="kategori">
+        <option value="Elektronik"  <?= $data['kategori']=='Elektronik'?'selected':''; ?>>Elektronik</option>
+        <option value="Komputer"    <?= $data['kategori']=='Komputer'?'selected':''; ?>>Komputer</option>
+        <option value="Handphone"   <?= $data['kategori']=='Handphone'?'selected':''; ?>>Handphone</option>
+    </select><br><br>
+
+    Harga Jual
+    <input type="text" name="harga_jual" value="<?= $data['harga_jual']; ?>"><br><br>
+
+    Harga Beli
+    <input type="text" name="harga_beli" value="<?= $data['harga_beli']; ?>"><br><br>
+
+    Stok
+    <input type="number" name="stok" value="<?= $data['stok']; ?>"><br><br>
+
+    Gambar Saat Ini:<br>
+    <img src="gambar/<?= $data['gambar']; ?>" width="80"><br><br>
+
+    Upload Gambar Baru (opsional)
+    <input type="file" name="file_gambar"><br><br>
+
+    <button type="submit" name="submit">Simpan</button>
+</form>
+
+</body>
 </html>
